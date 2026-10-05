@@ -2,12 +2,7 @@
 use syn::{Fields, GenericParam, ItemStruct};
 
 pub fn validate(item: &ItemStruct) -> syn::Result<()> {
-    let lifetimes: Vec<_> = item
-        .generics
-        .lifetimes()
-        .map(|p| p.lifetime.clone())
-        .collect();
-    if lifetimes.is_empty() {
+    if item.generics.lifetimes().next().is_none() {
         return Err(syn::Error::new_spanned(
             &item.generics,
             "declare at least one subject lifetime",
@@ -26,12 +21,10 @@ pub fn validate(item: &ItemStruct) -> syn::Result<()> {
             ));
         }
     }
-    let fields: Vec<_> = match &item.fields {
-        Fields::Unit => Vec::new(),
-        Fields::Named(f) => f.named.iter().collect(),
-        Fields::Unnamed(f) => return Err(syn::Error::new_spanned(f, "use named payload fields")),
-    };
-    for field in &fields {
+    if let Fields::Unnamed(fields) = &item.fields {
+        return Err(syn::Error::new_spanned(fields, "use named payload fields"));
+    }
+    for field in &item.fields {
         if field
             .attrs
             .iter()

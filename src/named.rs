@@ -2,8 +2,8 @@ use generativity::{Guard, Id};
 
 /// An owned value identified by a fresh, invariant lifetime brand.
 ///
-/// The wrapper is neither `Copy` nor `Clone`. It permits no replacement or
-/// mutable access. Shared access does not prevent interior mutation inside `T`.
+/// Payload access is shared; extraction consumes the wrapper. Interior mutability
+/// in `T` remains available through shared references.
 #[must_use = "use the named value in a check or dependent operation"]
 #[derive(Debug)]
 pub struct Named<'id, T> {
@@ -20,14 +20,14 @@ impl<'id, T> Named<'id, T> {
         }
     }
 
-    /// Read the underlying value without replacing it.
-    pub fn value(&self) -> &T {
+    /// Borrow the underlying value.
+    pub const fn value(&self) -> &T {
         &self.value
     }
 
     /// Consume the wrapper and recover its underlying value.
     ///
-    /// Existing evidence is not automatically attached to the recovered value.
+    /// The returned value has its original unbranded type.
     pub fn into_inner(self) -> T {
         self.value
     }

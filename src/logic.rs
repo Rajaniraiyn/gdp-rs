@@ -1,7 +1,7 @@
-/// Conjunction containing actual evidence for both components.
+/// Conjunction containing both evidence components.
 ///
 /// Components can be proofs, borrowed proofs, or data carrying evidence.
-/// Construction adds no trust; it only packages the supplied components.
+/// Stores the supplied components.
 #[must_use]
 #[derive(Debug)]
 pub struct And<A, B> {
@@ -10,18 +10,18 @@ pub struct And<A, B> {
 }
 
 impl<A, B> And<A, B> {
-    /// Combine two existing components without cloning either.
-    pub fn new(left: A, right: B) -> Self {
+    /// Move two components into a conjunction.
+    pub const fn new(left: A, right: B) -> Self {
         Self { left, right }
     }
 
     /// Borrow the left component.
-    pub fn left(&self) -> &A {
+    pub const fn left(&self) -> &A {
         &self.left
     }
 
     /// Borrow the right component.
-    pub fn right(&self) -> &B {
+    pub const fn right(&self) -> &B {
         &self.right
     }
 
@@ -29,9 +29,14 @@ impl<A, B> And<A, B> {
     pub fn into_parts(self) -> (A, B) {
         (self.left, self.right)
     }
+
+    /// Borrow both components.
+    pub const fn as_ref(&self) -> And<&A, &B> {
+        And::new(&self.left, &self.right)
+    }
 }
 
-/// Disjunction containing actual evidence for the selected alternative.
+/// Evidence for the selected alternative.
 #[must_use]
 #[derive(Debug)]
 pub enum Either<A, B> {
@@ -50,8 +55,8 @@ impl<A, B> Either<A, B> {
         }
     }
 
-    /// Borrow the selected evidence without duplicating it.
-    pub fn as_ref(&self) -> Either<&A, &B> {
+    /// Borrow the selected evidence.
+    pub const fn as_ref(&self) -> Either<&A, &B> {
         match self {
             Self::Left(a) => Either::Left(a),
             Self::Right(b) => Either::Right(b),

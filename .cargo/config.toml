@@ -1,5 +1,5 @@
 [alias]
-# Workspace shortcuts; no global installation or toolchain changes.
+# Workspace commands.
 gdp = ["run", "--package", "cargo-gdp", "--"]
 test-all = ["test", "--workspace", "--all-features", "--locked"]
 lint-all = ["clippy", "--workspace", "--all-features", "--all-targets", "--", "-D", "warnings"]

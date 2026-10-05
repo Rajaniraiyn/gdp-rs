@@ -1,3 +1,4 @@
+//! Cargo command and editor-protocol integration tests.
 use std::{fs, process::Command};
 
 #[test]
@@ -19,8 +20,7 @@ fn command_reports_limits_and_scans_only_selected_packages() {
         .unwrap();
     }
     fs::write(root.join("clean/src/lib.rs"), "pub fn harmless() {}\n").unwrap();
-    // Syntax-only scanning deliberately does not need this unresolved attribute
-    // to typecheck. Real protected declarations are separately compiler-tested.
+    // The syntax fixture uses an unresolved attribute.
     fs::write(root.join("bad/Cargo.toml"), "[package]\nname=\"bad\"\nversion=\"0.0.0\"\nedition=\"2024\"\n[lib]\npath=\"custom/entry.rs\"\n").unwrap();
     fs::write(root.join("bad/custom/entry.rs"), "mod policy;\n").unwrap();
     fs::write(
@@ -50,7 +50,7 @@ fn command_reports_limits_and_scans_only_selected_packages() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("clean:"));
     assert!(!stdout.contains("bad:"));
-    assert!(stdout.contains("not inside stock Clippy"));
+    assert!(stdout.contains("Analysis: source syntax"));
     assert!(
         invoke(&["lint", "-p", "clean", "--offline"])
             .status

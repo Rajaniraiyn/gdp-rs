@@ -1,4 +1,4 @@
-//! A ternary relationship and explicit alternatives, without authorization.
+//! A ternary relationship and evidence alternatives.
 use ghostproof::{Either, Named, name};
 
 mod arithmetic {

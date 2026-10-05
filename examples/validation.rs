@@ -3,7 +3,7 @@ use ghostproof::{Named, name};
 
 mod sorted {
     use super::*;
-    #[ghostproof::proof]
+    #[ghostproof::proof(subjects(sequence))]
     pub struct Sorted<'sequence> {
         len: usize,
     }
@@ -25,7 +25,7 @@ mod sorted {
 
     impl<'s> SortedCapability<'s, Vec<i32>> {
         pub fn find(&self, needle: i32) -> Result<usize, usize> {
-            self.subject_0().value().binary_search(&needle)
+            self.sequence().value().binary_search(&needle)
         }
         // A transition discards previous evidence and checks the new snapshot.
         pub fn append(self, value: i32) -> Vec<i32> {

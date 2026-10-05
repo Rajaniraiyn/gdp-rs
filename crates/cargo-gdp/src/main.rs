@@ -1,4 +1,4 @@
-//! Cargo integration without a compiler fork or implicit toolchain changes.
+//! Cargo checks, syntax analysis, and editor diagnostics.
 mod analysis;
 mod diagnostic;
 mod output;
@@ -47,7 +47,7 @@ fn execute(command: &str, forwarded: &[String], format: output::Format) -> Resul
         }
         "help" | "--help" | "-h" => {
             println!(
-                "cargo gdp check [cargo check options]\ncargo gdp lint [workspace selection options] [--message-format=json]\ncargo gdp doctor [workspace selection options]\n\ncheck runs cargo check, then narrow syntax checks on selected local packages.\nJSON mode emits gdp-diagnostic and gdp-summary objects on stdout.\nUse --message-format=cargo-json with check or lint for Cargo/rustc editor diagnostics.\nNo command modifies manifests or toolchains. Syntax checks do not certify policy truth,\nresolve aliases, expand macros, or inspect every conditional compilation path."
+                "cargo gdp check [cargo check options]\ncargo gdp lint [workspace selection options] [--message-format=json]\ncargo gdp doctor [workspace selection options]\n\ncheck runs cargo check, then narrow syntax checks on selected local packages.\nJSON mode emits gdp-diagnostic and gdp-summary objects on stdout.\nUse --message-format=cargo-json with check or lint for Cargo/rustc editor diagnostics.\nAnalysis covers source syntax. See cargo gdp doctor for scope."
             );
             Ok(0)
         }
@@ -82,7 +82,7 @@ fn execute(command: &str, forwarded: &[String], format: output::Format) -> Resul
                 let selected: Vec<_> = packages.iter().map(|package| serde_json::json!({"name":package.name,"directory":package.directory,"sources":package.sources})).collect();
                 println!(
                     "{}",
-                    serde_json::json!({"reason":"gdp-doctor", "schema_version":1, "version":env!("CARGO_PKG_VERSION"), "rustc":String::from_utf8_lossy(&rustc.stdout).trim(), "packages":selected, "analysis":"syntax", "limits":"No alias resolution, macro expansion, cfg evaluation, or policy verification"})
+                    serde_json::json!({"reason":"gdp-doctor", "schema_version":1, "version":env!("CARGO_PKG_VERSION"), "rustc":String::from_utf8_lossy(&rustc.stdout).trim(), "packages":selected, "analysis":"syntax", "limits":"Aliases, macro expansion, cfg evaluation, and policy semantics are outside syntax analysis"})
                 );
                 return Ok(0);
             }
@@ -91,7 +91,7 @@ fn execute(command: &str, forwarded: &[String], format: output::Format) -> Resul
                 println!("{}: {}", package.name, package.directory.display());
             }
             println!(
-                "Core enforcement: Rust privacy, ownership, and invariant brands.\nAnalysis: source syntax only; macros and type aliases are not resolved.\nCustom rules run here, not inside stock Clippy.\nExternal state freshness and trusted checker correctness require application review."
+                "Analysis: source syntax.\nExcluded: aliases, macro expansion, cfg evaluation, and policy semantics."
             );
             Ok(0)
         }
@@ -119,12 +119,10 @@ fn lint(args: &[String], format: output::Format) -> Result<u8, String> {
     if format.is_json() {
         println!(
             "{}",
-            serde_json::json!({"reason":"gdp-summary", "schema_version":1, "success":success, "stage":"syntax", "diagnostics":count, "analysis":"syntax", "limits":"No alias resolution, macro expansion, cfg evaluation, or policy verification"})
+            serde_json::json!({"reason":"gdp-summary", "schema_version":1, "success":success, "stage":"syntax", "diagnostics":count, "analysis":"syntax", "limits":"Aliases, macro expansion, cfg evaluation, and policy semantics are outside syntax analysis"})
         );
     } else if success {
-        println!(
-            "GDP syntax checks passed. This does not certify checks, policy truth, or all API boundaries."
-        );
+        println!("GDP syntax checks passed.");
     }
     output::finished(format, success);
     Ok(u8::from(!success))

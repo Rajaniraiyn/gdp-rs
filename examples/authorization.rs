@@ -42,7 +42,7 @@ mod policy {
     pub struct Admin<'u, 'p>;
     #[ghostproof::proof]
     pub struct Plan<'p>;
-    #[ghostproof::proof]
+    #[ghostproof::proof(subjects(actor, project))]
     pub struct CanProtect<'u, 'p>;
 
     pub async fn admin<'u, 'p>(
@@ -79,8 +79,7 @@ mod policy {
     }
     impl<'view, 'u, 'p> CanProtectView<'view, 'u, 'p, UserId, ProjectId> {
         pub async fn set_password(&self, db: &Database, password: &str) -> Result<(), Error> {
-            db.write_password(self.subject_1().value().0, password)
-                .await
+            db.write_password(self.project().value().0, password).await
         }
     }
 }
@@ -92,8 +91,8 @@ async fn handler(db: &Database, user_id: u64, project_id: u64) -> Result<(), Err
         policy::plan(db, &project)
     )?;
     let proof = policy::can_protect(&user, &project, And::new(admin, plan));
-    let project = proof.bind(user, project);
-    project.set_password(db, "secret").await
+    let authorized = proof.bind(user, project);
+    authorized.set_password(db, "secret").await
 }
 
 fn main() {

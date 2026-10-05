@@ -26,8 +26,7 @@ pub fn scan_package(package: &Package, diagnostics: &mut Vec<Diagnostic>) -> Res
             }
         }
     }
-    // Test fixtures intentionally contain rejected declarations; check product
-    // sources and examples rather than treating those fixtures as product code.
+    // Directory scanning covers product sources and examples.
     for directory in ["src", "examples"] {
         let path = root.join(directory);
         if path.exists() {

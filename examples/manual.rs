@@ -1,4 +1,4 @@
-//! GDP without procedural macros or an allocator in the library.
+//! Guard-based naming and handwritten evidence.
 use core::marker::PhantomData;
 use ghostproof::{Named, name};
 

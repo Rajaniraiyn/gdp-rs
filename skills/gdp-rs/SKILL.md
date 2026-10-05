@@ -1,38 +1,39 @@
 ---
 name: gdp-rs
-description: Adopt, change, or review Ghosts of Departed Proofs in Rust using ghostproof. Use for proof-gated authorization or validation, Named lifetime errors, capabilities, and cargo-gdp diagnostics. Does not apply to unrelated Rust code or general theorem proving.
+description: Adopt, change, or review Rust Ghosts of Departed Proofs with ghostproof. Use for proof-gated operations, Named lifetime errors, scoped naming, const configuration checks, and cargo-gdp findings.
 ---
 
 # GDP for Rust
 
-Connect sensitive operations to evidence about their exact arguments. Use `ghostproof` for fresh value names, private nominal evidence, and capabilities. Keep trusted checking modules small. Prove the preconditions that matter for the requested operation rather than converting every boolean into evidence.
+Connect each protected operation to evidence about its exact subjects. Keep the checking module small and preserve the project's runtime, policy, and error model.
 
-## Adopt or change a checked operation
+## Build the boundary
 
-- Start with domain newtypes for IDs. A domain type identifies the kind of value; `name!` gives one particular value a fresh invariant brand.
-- Declare a proposition inside its checking module with `#[ghostproof::proof] pub struct MayEdit<'user, 'project>;`. Each lifetime names one subject. Named payload fields must be private.
-- Export a checker accepting matching `&Named<'id, T>` subjects. Call the generated private `MayEdit::issue(...)` only after the real check succeeds. The declaring module and its descendants can issue evidence, so place unrelated code outside that boundary.
-- Distinguish denial from backend failure. Return `Option<Proof>` for a pure check or `Result<Option<Proof>, Error>` when failures need separate handling.
-- Require matching subjects and evidence in the sensitive API, or implement its operation on the generated capability or view. Check that another public API cannot perform the same effect unchecked.
-- Use `name!(user = user_id, project = project_id)` in the request, job, or operation scope. Obtain evidence, then perform the operation within that scope.
-- Use `proof.view(&user, &project)` to borrow matching subjects. Use `proof.bind(user, project)` for ownership and consuming permissions. `capability.as_view()` borrows an existing owner; a view cannot replace a consumable capability.
-- Combine evidence with `And` or branch with `Either`. Derive a new proposition through an explicit trusted function when that inference is justified. Do not add public blanket proof issuers or construction traits to make call sites compile.
+- Use domain-specific ID types. Give each value a fresh brand with `name!`, or group checks and effects in `with_names!(actor = actor_id, resource = resource_id; { ... })`.
+- Declare the fact in its checking module with `#[ghostproof::proof(subjects(actor, resource))] pub struct Allowed<'actor, 'resource>;`. Accessor names follow lifetime order. Payload fields are private; type and const generics describe payloads or proposition parameters.
+- Export a checker taking matching `&Named<'id, T>` arguments. Issue evidence after the actual predicate succeeds. The declaring module and its descendants hold issuance authority.
+- Keep denial, missing resources, and backend failures distinct where the application requires them. Use its existing `Option` or `Result` conventions.
+- Require matching subjects and evidence in a protected function, or implement the operation on its generated capability or view. Keep raw writes behind this boundary.
+- Use `proof.bind(actor, resource)` for owned permissions and `proof.view(&actor, &resource)` for borrowing. `capability.as_view()` shares the existing owner. Consuming effects take the owned capability by value.
+- Combine existing evidence with `And` or `all!`. Use `Either` for alternatives. Implement inference in the module that owns the resulting proposition.
 
-## Rust constraints
+## Static configuration
 
-Brand lifetime errors often identify a wrong subject or an escaping naming scope. Name a resource once and reuse references to that name. Equal raw values named separately remain different subjects. Do not weaken invariance, manufacture guards, or use unsafe conversion to silence these errors.
+Use a const predicate and `const_assert!(condition, "message")` for values known at compile time. Reuse that predicate in the runtime checker for dynamic input. Const assertions validate static conditions; application checks issue branded evidence. See `examples/configuration.rs`.
 
-The core is `no_std` and allocation-free; macro support is optional. Avoid adding an executor, allocator, or application framework to the core. Normal Rust ownership and auto traits apply to payloads and subjects.
+`And::new`, `And::as_ref`, shared projections, `Either::as_ref`, and `Named::value` support const functions. Scoped naming macros support Rust 2024 expressions. The core is allocation-free and `no_std`; procedural macros are optional.
 
-Evidence can survive `.await` while its owners stay alive. A task requiring `'static` usually needs its naming and checking scope inside the task. Borrowing concurrency can share a view when the underlying types support it. Move errors on a capability may mean the API intentionally consumes a permission; recheck only when issuing another permission is valid.
+## Resolve Rust errors
 
-Shared access does not freeze interior mutability or a remote database row. For facts that can change between check and effect, use transaction isolation, version checks, atomic conditional writes, or revalidation at the effect. Evidence is neither a serialized authorization token nor a distributed single-use guarantee.
+Name a resource once and reuse that name. Equal raw values named separately have distinct brands. A lifetime error can indicate a wrong subject or an escaping scope. Keep the evidence and operation in the same scope, preserving invariance and private construction.
 
-## Verify the boundary
+Evidence can survive `.await` while its owners remain alive. Create a naming scope inside a task requiring `'static`. Borrowing concurrency uses views and the underlying types' `Send` and `Sync` bounds. A moved capability represents a consumed permission; issue another only after a valid new check.
 
-Test the checker's success, denial, and meaningful failure paths. Add downstream compile-fail coverage for a newly introduced boundary, such as missing evidence, the wrong resource, forged construction, or reuse after consumption. In the gdp-rs workspace, reuse the existing `tests/ui` harness and stable diagnostic fragments rather than compiler-version snapshots.
+For changing external facts, use an atomic conditional write, version check, or transaction semantics. Bind the backend as a subject when store identity matters. Revision invalidation must cover every mutable policy input. See `examples/versioned.rs` and `docs/FRESHNESS.md`.
 
-From a gdp-rs checkout, run:
+## Verify
+
+Test the checker and the new boundary's failure paths. Compile-fail cases should exercise missing evidence, wrong subjects, scope escape, or repeated consumption. Reuse `tests/ui` in this workspace and stable diagnostic fragments.
 
 ```sh
 cargo test-all
@@ -42,12 +43,8 @@ cargo lint-all
 cargo gdp check --workspace --all-features --all-targets --locked
 ```
 
-Downstream, install `cargo-gdp` from its checkout with `cargo install --path crates/cargo-gdp --locked`, then use `cargo gdp check` with the consuming project's normal Cargo options. Do not add the workspace's local alias to a downstream project unless it also contains the tool package.
+Downstream projects install the command with `cargo install --path crates/cargo-gdp --locked` from a gdp-rs checkout. Its local Cargo aliases apply to this workspace.
 
-`cargo gdp` checks syntax conventions. It does not resolve aliases, expand macros, evaluate `cfg`, verify checker truth, or certify every sensitive operation. Its rules are separate from stock Clippy. Use `cargo gdp doctor --message-format=json` for scope and `cargo gdp lint --message-format=json` for schema version 1 findings.
+Use `cargo gdp doctor --message-format=json` for package scope and `cargo gdp lint --message-format=json` for schema version 1 findings. `--message-format=cargo-json` supports editor check commands; read `docs/EDITOR.md` before changing settings. Clippy runs separately. GDP analysis covers source syntax; aliases, expanded macros, cfg evaluation, and checker semantics require application review.
 
-Read the project's [README](https://github.com/Rajaniraiyn/gdp-rs/blob/main/README.md) for the current API and [implementation ledger](https://github.com/Rajaniraiyn/gdp-rs/blob/main/docs/IMPLEMENTATION.md) for guarantees and analysis limits. In a local checkout, prefer those local files. The examples cover authorization, validation, and relationships; preserve the user's runtime and policy choices when adapting them.
-
-For on-save editor findings, use `cargo gdp check --message-format=cargo-json` with rust-analyzer's check override. Read `docs/EDITOR.md` before changing editor settings. The duplication lint flags handwritten `Clone` or `Copy` on recognized evidence types.
-
-For mutable external facts, `examples/versioned.rs` and `docs/FRESHNESS.md` show a revision compared atomically at the write. Bind backend identity as a subject when evidence must not transfer between stores. Revision invalidation must cover every policy-relevant change.
+Read the local README and `docs/IMPLEMENTATION.md` for the API and coverage. The published [README](https://github.com/Rajaniraiyn/gdp-rs/blob/main/README.md) and [coverage ledger](https://github.com/Rajaniraiyn/gdp-rs/blob/main/docs/IMPLEMENTATION.md) are fallbacks when the checkout is unavailable.

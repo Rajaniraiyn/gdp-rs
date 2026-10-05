@@ -25,7 +25,7 @@ mod policy {
         name: String,
     }
 
-    /// A shared backend, deliberately mutable through other handles.
+    /// A shared backend with mutable state.
     #[derive(Clone)]
     pub struct Store(Arc<Mutex<Row>>);
 
@@ -54,7 +54,7 @@ mod policy {
         }
     }
 
-    #[ghostproof::proof]
+    #[ghostproof::proof(subjects(store, actor, project))]
     pub struct CanRename<'store, 'user, 'project> {
         version: u64,
     }
@@ -77,13 +77,8 @@ mod policy {
     impl<'s, 'u, 'p> CanRenameCapability<'s, 'u, 'p, Store, UserId, ProjectId> {
         /// Consume the permission, validating freshness and writing atomically.
         pub fn rename(self, name: &str) -> Result<(), Error> {
-            let mut row = self
-                .subject_0()
-                .value()
-                .0
-                .lock()
-                .map_err(|_| Error::Backend)?;
-            if row.project != *self.subject_2().value() {
+            let mut row = self.store().value().0.lock().map_err(|_| Error::Backend)?;
+            if row.project != *self.project().value() {
                 return Err(Error::Missing);
             }
             if row.version != self.proof().version {

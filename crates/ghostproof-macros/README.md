@@ -1,16 +1,16 @@
-# Ghostproof declaration macros
+# Proof declarations
 
-Enable `ghostproof`'s optional `macros` feature to use this package through the library's `proof` reexport.
+Enable the library's `macros` feature and use its `proof` attribute:
 
 ```rust,ignore
 mod policy {
-    #[ghostproof::proof]
-    pub struct Allowed<'user, 'resource>;
+    #[ghostproof::proof(subjects(actor, resource))]
+    pub struct Allowed<'actor, 'resource>;
 }
 ```
 
-The declaration creates a nominal proof with private fields and a private issuing method. Each lifetime identifies one named subject. Type parameters, const parameters, bounds, and private payload fields are supported. The generated capability bundles only matching subjects with its evidence. `proof.view(...)` and `capability.as_view()` borrow those subjects and their evidence into a matching view without consuming their owners.
+The attribute generates `Allowed`, `AllowedCapability`, and `AllowedView`. Each lifetime identifies one named subject. `subjects(...)` adds domain-named accessors to capabilities and views; positional `subject_N` accessors remain available. Names must be distinct, match the lifetime count, and avoid `proof`, `as_view`, `into_parts`, and generated positional names.
 
-The owning module and its descendants are trusted to issue facts correctly. The macro does not inspect a policy query or prove its truth. Scoped lifetime brands and private constructors enforce subject identity and construction boundaries.
+The private `issue` method takes named subject references followed by payload fields. Type parameters, const parameters, bounds, and private named fields are supported. `bind` owns matching subjects and evidence; `view` and `as_view` borrow them.
 
-Requires Rust 1.85 or later. Licensed under MIT or Apache 2.0.
+The declaring module and its descendants implement the checks and own issuance authority. Constructor fields are private. Construction and duplication derives are rejected. Rust 1.85 or later is required. Licensed under MIT or Apache 2.0.

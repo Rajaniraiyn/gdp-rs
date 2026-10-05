@@ -25,4 +25,4 @@ Keep public issuers and unchecked construction out of generated evidence. Docume
 
 For benchmarks, follow [bench/README.md](bench/README.md) and include the measurement environment. For agent-skill changes, keep `skills/gdp-rs/SKILL.md` consistent with the real API and validate its frontmatter with a skill validator when available.
 
-Crates remain unpublished. GitHub publication does not imply a stable API or a crates.io release.
+Crates are unpublished and the API is pre-release.

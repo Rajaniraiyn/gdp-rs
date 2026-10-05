@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure reproducible local observations; no benchmark dependencies required."""
+"""Record local runtime, compilation, and executable-size measurements."""
 import json
 import os
 import platform

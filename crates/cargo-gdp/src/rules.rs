@@ -1,4 +1,4 @@
-//! Narrow syntax rules without import or type resolution.
+//! Syntax rules for local evidence declarations.
 use std::collections::BTreeSet;
 use syn::{ImplItem, Item, Type, Visibility};
 
@@ -44,7 +44,10 @@ pub fn inspect(items: &[Item]) -> Vec<(usize, usize, &'static str, &'static str)
         if !proofs.contains(&name.to_string()) {
             continue;
         }
-        if let Some((_, trait_path, _)) = &implementation.trait_ {
+        if let Some((trait_path, _)) = &implementation.trait_ {
+            if implementation.modifiers.polarity.is_some() {
+                continue;
+            }
             if trait_path
                 .segments
                 .last()
@@ -89,16 +92,22 @@ pub fn inspect(items: &[Item]) -> Vec<(usize, usize, &'static str, &'static str)
                     "keep unchecked evidence issuance private to the checking module",
                 ));
             }
-            if method
-                .sig
-                .receiver()
-                .is_some_and(|r| r.reference.is_some() && r.mutability.is_some())
-            {
+            if method.sig.receiver().is_some_and(mutable_receiver) {
                 diagnostics.push((method.sig.ident.span().start().line, method.sig.ident.span().start().column + 1, "gdp::mutable_evidence", "public mutable access to proof or capability state requires a new checked transition"));
             }
         }
     }
     diagnostics
+}
+
+fn mutable_receiver(receiver: &syn::Receiver) -> bool {
+    match &receiver.kind {
+        syn::ReceiverKind::Reference(_, _, mutability) => mutability.is_some(),
+        syn::ReceiverKind::Typed(_, ty) => {
+            matches!(ty.as_ref(), Type::Reference(reference) if reference.mutability.is_some())
+        }
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -156,5 +165,23 @@ mod tests {
         );
         assert!(rules("struct Plain; impl Clone for Plain {} impl Copy for Plain {}").is_empty());
         assert!(rules("#[gp::proof] struct P<'a>; impl Clone for other::P<'_> {}").is_empty());
+    }
+
+    #[test]
+    fn recognizes_shorthand_and_explicit_mutable_receivers() {
+        assert_eq!(
+            rules(
+                "#[gp::proof] struct P<'a>; impl P<'_> { pub fn a(&mut self) {} pub fn b(self: &mut Self) {} pub fn c(self: &Self) {} pub fn d(mut self) {} }"
+            ),
+            ["gdp::mutable_evidence", "gdp::mutable_evidence"]
+        );
+    }
+
+    #[test]
+    fn negative_impls_do_not_construct_or_duplicate_evidence() {
+        assert!(
+            rules("#[gp::proof] struct P<'a>; impl !Clone for P<'_> {} impl !Default for P<'_> {}")
+                .is_empty()
+        );
     }
 }

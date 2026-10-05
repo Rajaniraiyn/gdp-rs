@@ -1,4 +1,4 @@
-//! Test real downstream boundaries without compiler-version-specific snapshots.
+//! Downstream compile contracts with a renamed dependency.
 #![cfg(feature = "macros")]
 
 use std::{fs, path::Path, process::Command};
@@ -26,7 +26,7 @@ fn downstream_compile_contracts() {
         .filter(|path| path.extension().is_some_and(|ext| ext == "rs"))
         .collect();
     cases.sort();
-    // Compile the actual README example rather than a manually maintained copy.
+    // Compile the README example through the downstream dependency.
     let readme = fs::read_to_string(repository.join("README.md")).unwrap();
     let sample = readme
         .split("```rust\n")

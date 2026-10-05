@@ -1,15 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="224" height="176" viewBox="0 0 224 176" shape-rendering="crispEdges" role="img" aria-labelledby="title desc">
   <title id="title">GDP for Rust</title>
   <desc id="desc">A pixel ghost with small orange crab claws carries a Rust document with a green checkmark.</desc>
-  <!-- Original geometry; the ghost carrying checked evidence nods to gdp-ts. -->
   <path fill="#7c3825" d="M76 16h44v8h16v8h12v16h8v64h-8v16h-12v16h-20v8H72v-8H52v-8H36v-16H24v-16h20v8h16V56h8V32h8z"/>
   <path fill="#f5f0df" d="M80 24h36v8h16v8h8v16h8v52h-8v16h-12v12h-16v8H76v-8H56v-8H44v-8h24V56h8V40h4z"/>
   <path fill="#ded6c0" d="M132 48h8v60h-8v16h-12v8h-12v4H76v-8h28v-8h12v-16h8V56h8z"/>
   <path fill="#292c35" d="M84 56h12v20H84zM116 56h12v20h-12zM96 88h16v8H96z"/>
-  <!-- Small pincers give the ghost a Rust flavor without a gear emblem. -->
   <path fill="#7c3825" d="M36 68h8v8h8v16h16v16H48V96H36V84h-8V64h8zM156 64h8v12h8V64h8v24h-8v12h-16v12h-12V96h12V84h-8V72h8z"/>
   <path fill="#e67943" d="M32 68h4v16h8v8h8v8h8v4H52V92H40V80h-8zM160 68h4v16h12V68h4v16h-8v12h-16v8h-8v-4h12V84h-4V76h4z"/>
-  <!-- A proof is about its checked subject: the document stays in its hands. -->
   <path fill="#292c35" d="M124 96h60v8h16v16h8v40h-8v8h-76v-8h-8v-56h8z"/>
   <path fill="#fff9e9" d="M128 104h52v8h16v12h4v32h-8v4h-64z"/>
   <path fill="#e67943" d="M176 104h8v8h12v12h-20zM136 116h28v20h-28z"/>

@@ -1,22 +1,20 @@
 //! Generate nominal owned capabilities and shared views.
 use proc_macro_crate::{FoundCrate, crate_name};
 use quote::{format_ident, quote};
-use syn::{Fields, GenericParam, ItemStruct};
+use syn::{GenericParam, ItemStruct};
 
-pub fn expand(item: ItemStruct) -> syn::Result<proc_macro2::TokenStream> {
+pub fn expand(
+    item: ItemStruct,
+    options: super::options::Options,
+) -> syn::Result<proc_macro2::TokenStream> {
     super::declaration::validate(&item)?;
+    options.validate(&item)?;
     let lifetimes: Vec<_> = item
         .generics
         .lifetimes()
         .map(|p| p.lifetime.clone())
         .collect();
-    let fields: Vec<_> = match &item.fields {
-        Fields::Unit => Vec::new(),
-        Fields::Named(fields) => fields.named.iter().collect(),
-        Fields::Unnamed(fields) => {
-            return Err(syn::Error::new_spanned(fields, "use named payload fields"));
-        }
-    };
+    let fields: Vec<_> = item.fields.iter().collect();
     let root = match crate_name("ghostproof")
         .map_err(|e| syn::Error::new(proc_macro2::Span::call_site(), e))?
     {
@@ -58,8 +56,40 @@ pub fn expand(item: ItemStruct) -> syn::Result<proc_macro2::TokenStream> {
     let subjects: Vec<_> = (0..lifetimes.len())
         .map(|i| format_ident!("subject_{i}"))
         .collect();
+    let mut capability_accessors = Vec::new();
+    let mut view_accessors = Vec::new();
+    if let Some(aliases) = &options.subjects {
+        for (((alias, subject), lifetime), ty) in
+            aliases.iter().zip(&subjects).zip(&lifetimes).zip(&types)
+        {
+            let doc = format!(
+                "Borrow the {} subject.",
+                alias.to_string().trim_start_matches("r#")
+            );
+            capability_accessors.push(quote! {
+                #[doc = #doc]
+                pub fn #alias(&self) -> &#root::Named<#lifetime, #ty> { &self.#subject }
+            });
+            view_accessors.push(quote! {
+                #[doc = #doc]
+                pub fn #alias(&self) -> &'__gdp_view #root::Named<#lifetime, #ty> { self.#subject }
+            });
+        }
+    }
     let field_names: Vec<_> = fields.iter().map(|f| f.ident.as_ref().unwrap()).collect();
     let field_types: Vec<_> = fields.iter().map(|f| &f.ty).collect();
+    let issue_subjects: Vec<_> = (0..lifetimes.len())
+        .map(|index| {
+            let mut candidate = format!("__gdp_subject_{index}");
+            while field_names
+                .iter()
+                .any(|name| name.to_string().trim_start_matches("r#") == candidate)
+            {
+                candidate.push('_');
+            }
+            format_ident!("{candidate}")
+        })
+        .collect();
     let mut markers: Vec<_> = lifetimes.iter().map(|lt| quote!(&#lt ())).collect();
     markers.extend(generics.type_params().map(|p| {
         let id = &p.ident;
@@ -78,10 +108,10 @@ pub fn expand(item: ItemStruct) -> syn::Result<proc_macro2::TokenStream> {
             // Only the checking module and its descendants may issue this fact.
             #[allow(dead_code)]
             fn issue<#(#types),*>(
-                #(#subjects: &#root::Named<#lifetimes, #types>,)*
+                #(#issue_subjects: &#root::Named<#lifetimes, #types>,)*
                 #(#field_names: #field_types,)*
             ) -> Self {
-                #(let _ = #subjects;)*
+                #(let _ = #issue_subjects;)*
                 Self { #(#field_names,)* __gdp_brand: ::core::marker::PhantomData }
             }
 
@@ -92,7 +122,7 @@ pub fn expand(item: ItemStruct) -> syn::Result<proc_macro2::TokenStream> {
                 #capability { #(#subjects,)* proof: self }
             }
 
-            /// Borrow matching subjects and evidence without moving their owners.
+            /// Borrow matching subjects and evidence.
             pub fn view<'__gdp_view, #(#types),*>(
                 &'__gdp_view self,
                 #(#subjects: &'__gdp_view #root::Named<#lifetimes, #types>),*
@@ -110,8 +140,9 @@ pub fn expand(item: ItemStruct) -> syn::Result<proc_macro2::TokenStream> {
         }
         #(#cfg_attrs)*
         impl #cap_impl_g #capability #cap_type_g #cap_where_g {
+            #(#capability_accessors)*
             #(
-                /// Borrow a named subject without replacing it.
+                /// Borrow a named subject.
                 pub fn #subjects(&self) -> &#root::Named<#lifetimes, #types> { &self.#subjects }
             )*
             /// Borrow the evidence carried by this capability.
@@ -138,11 +169,12 @@ pub fn expand(item: ItemStruct) -> syn::Result<proc_macro2::TokenStream> {
         }
         #(#cfg_attrs)*
         impl #view_impl_g #view #view_type_g #view_where_g {
+            #(#view_accessors)*
             #(
                 /// Read a named subject within the view's borrow lifetime.
                 pub fn #subjects(&self) -> &'__gdp_view #root::Named<#lifetimes, #types> { self.#subjects }
             )*
-            /// Read the borrowed evidence without duplicating the owned proof.
+            /// Read the borrowed evidence.
             pub fn proof(&self) -> &'__gdp_view #name #type_g { self.proof }
         }
     })
