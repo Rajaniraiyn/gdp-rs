@@ -67,12 +67,17 @@ The syntax scanner checks local unqualified implementations next to `#[proof]` d
 | `gdp::exported_issuer` | Nonprivate `issue`, `issue_unchecked`, or `new_unchecked` method |
 | `gdp::mutable_evidence` | Nonprivate method with an `&mut self` receiver on a proof, generated capability, or view |
 | `gdp::unchecked_construction` | Handwritten `Default` or `Deserialize` implementation on the recognized declaration |
+| `gdp::duplicated_evidence` | Handwritten `Clone` or `Copy` implementation on a recognized proof, capability, or view |
 
 The scanner visits source and example directories plus custom library, binary, and example roots reported by Cargo metadata. It follows outlined modules and literal `#[path]` declarations, preserving the different path rules for inline and outlined modules. Files are deduplicated by canonical path. These filesystem rules do not resolve imports, aliases, expanded macros, out-of-line cross-module type references, or `cfg`. Symlink files and test fixtures are excluded. The scanner never claims that a clean scan proves all authorization paths are covered.
 
 All commands support JSON output through `--message-format=json`. `check` preserves Cargo's JSON records and appends GDP findings and a summary. GDP records have `schema_version: 1` and reasons `gdp-diagnostic`, `gdp-summary`, or `gdp-doctor`. Diagnostics include a rule code, path, one-based line and column, level, and message. A compiler failure produces a summary identifying the compiler stage and retains Cargo's failure exit status. GDP syntax findings remain separate from rustc diagnostics.
 
 Stock Clippy remains independently usable. Dylint or a custom rustc driver would add compiler maintenance without improving the implemented syntax rules, so no compiler plugin is required. Add such a package only when a precise semantic rule has examples, expected diagnostics, and a measured false-positive rate.
+
+Editor mode `--message-format=cargo-json` emits Cargo/rustc-compatible findings and one final combined build status. Declared module traversal retains target provenance; leftover scanned files use the first product target only for editor association. Unicode and CRLF spans, custom paths, and failure status are tested. See [editor integration](EDITOR.md).
+
+The [versioned write example](../examples/versioned.rs) connects evidence to a store, user, and project, carrying a checked revision to an atomic compare-and-write. Five tests cover valid writes, revocation, owner changes away and back, missing versus denied resources, and concurrent permissions. See [freshness assumptions](FRESHNESS.md).
 
 ## Acceptance coverage
 

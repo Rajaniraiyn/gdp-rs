@@ -47,3 +47,7 @@ Downstream, install `cargo-gdp` from its checkout with `cargo install --path cra
 `cargo gdp` checks syntax conventions. It does not resolve aliases, expand macros, evaluate `cfg`, verify checker truth, or certify every sensitive operation. Its rules are separate from stock Clippy. Use `cargo gdp doctor --message-format=json` for scope and `cargo gdp lint --message-format=json` for schema version 1 findings.
 
 Read the project's [README](https://github.com/Rajaniraiyn/gdp-rs/blob/main/README.md) for the current API and [implementation ledger](https://github.com/Rajaniraiyn/gdp-rs/blob/main/docs/IMPLEMENTATION.md) for guarantees and analysis limits. In a local checkout, prefer those local files. The examples cover authorization, validation, and relationships; preserve the user's runtime and policy choices when adapting them.
+
+For on-save editor findings, use `cargo gdp check --message-format=cargo-json` with rust-analyzer's check override. Read `docs/EDITOR.md` before changing editor settings. The duplication lint flags handwritten `Clone` or `Copy` on recognized evidence types.
+
+For mutable external facts, `examples/versioned.rs` and `docs/FRESHNESS.md` show a revision compared atomically at the write. Bind backend identity as a subject when evidence must not transfer between stores. Revision invalidation must cover every policy-relevant change.

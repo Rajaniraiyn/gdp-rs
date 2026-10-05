@@ -118,10 +118,13 @@ Inference rules belong in trusted application modules. To derive member evidence
 cargo run --example authorization --features macros
 cargo run --example validation --features macros
 cargo run --example relationships --features macros
+cargo run --example versioned --features macros
 cargo run --example manual
 ```
 
 The authorization example checks admin and plan concurrently, derives an operation-specific permission, and binds it to the actor and resource. Validation uses an owned immutable sequence, payload evidence, and a transition requiring new validation. Relationships demonstrates a ternary fact and alternatives. The manual example works without procedural macros.
+
+The versioned example binds evidence to the store, actor, and project, then compares its checked revision atomically at the write. Tests cover revocation, ownership changing away and back, and concurrent permissions. See [evidence freshness](docs/FRESHNESS.md) for backend assumptions.
 
 ## Cargo tooling
 
@@ -141,13 +144,15 @@ cargo run -p cargo-gdp -- check --workspace --all-features --all-targets
 
 `check` forwards options to `cargo check`, then checks selected packages for narrowly defined evidence bypass conventions. `lint` runs just the syntax checks. `doctor` reports the selected packages and analysis limits. No command changes manifests or toolchains.
 
-Syntax rules flag exported issuing methods, public mutable proof, capability, or view methods, and handwritten construction traits on annotated declarations. They inspect local unqualified implementations. They do not resolve aliases, expand macros, or evaluate `cfg`; test fixtures are excluded. Select packages by exact local name or full Cargo package ID; unsupported selectors are rejected rather than silently skipped.
+Syntax rules flag exported issuing methods, public mutable proof, capability, or view methods, and handwritten construction or duplication traits on annotated declarations. They inspect local unqualified implementations. They do not resolve aliases, expand macros, or evaluate `cfg`; test fixtures are excluded. Select packages by exact local name or full Cargo package ID; unsupported selectors are rejected rather than silently skipped.
 
 The scanner also follows custom library, binary, and example source paths declared in Cargo metadata, including their outlined modules and literal `#[path]` declarations. Imports and type aliases across files remain unresolved. Files are deduplicated by canonical path.
 
 Use `--message-format=json` for machine-readable output. `check` preserves Cargo's JSON records and appends GDP records. `lint` emits `gdp-diagnostic` records and a `gdp-summary`; `doctor` emits `gdp-doctor`. GDP records use schema version 1. Findings include a stable rule code, source path, and one-based line and column. When the compiler check fails, the summary identifies the compiler stage and the command retains its failure status.
 
 These are project convention checks, not compiler proofs. They run through `cargo gdp`, not a new namespace inside stock Clippy. Compiler-coupled Dylint integration remains unnecessary for the current rules and is deferred until a demonstrated semantic gap warrants it.
+
+For editor diagnostics, use `cargo gdp check --message-format=cargo-json`. This emits Cargo/rustc-compatible findings with primary spans and one combined final build result. See the [editor guide](docs/EDITOR.md) for a rust-analyzer check override. Existing GDP JSON mode retains its schema version 1 records.
 
 ## Guarantees and limits
 

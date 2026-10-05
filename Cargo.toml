@@ -41,6 +41,11 @@ required-features = ["macros"]
 name = "overhead"
 required-features = ["macros"]
 
+[[example]]
+name = "versioned"
+required-features = ["macros"]
+test = true
+
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"

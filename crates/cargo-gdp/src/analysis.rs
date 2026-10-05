@@ -14,12 +14,16 @@ pub fn scan_package(package: &Package, diagnostics: &mut Vec<Diagnostic>) -> Res
     // established before scanning any leftover source files.
     for source in &package.sources {
         if source.exists() {
+            let start = diagnostics.len();
             scan_file(
                 source,
                 source.parent().ok_or("source has no parent")?,
                 &mut visited,
                 diagnostics,
             )?;
+            for diagnostic in &mut diagnostics[start..] {
+                diagnostic.source_root = Some(source.clone());
+            }
         }
     }
     // Test fixtures intentionally contain rejected declarations; check product
@@ -90,12 +94,16 @@ fn scan_file(
     let source = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let file = syn::parse_file(&source).map_err(|e| format!("{}: {e}", path.display()))?;
     for (line, column, rule, message) in inspect(&file.items) {
+        // syn strips an initial BOM before parsing. Restore its character in
+        // first-line locations so editor byte offsets use the original source.
+        let column = column + usize::from(line == 1 && source.starts_with('\u{feff}'));
         diagnostics.push(Diagnostic {
             file: path.to_owned(),
             line,
             column,
             rule,
             message,
+            source_root: None,
         });
     }
     scan_modules(

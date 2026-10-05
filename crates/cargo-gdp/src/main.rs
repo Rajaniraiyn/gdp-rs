@@ -1,6 +1,7 @@
 //! Cargo integration without a compiler fork or implicit toolchain changes.
 mod analysis;
 mod diagnostic;
+mod output;
 mod rules;
 mod workspace;
 
@@ -29,37 +30,46 @@ fn run() -> Result<u8, String> {
         .map(String::as_str)
         .unwrap_or("help")
         .to_owned();
-    let forwarded = &args[usize::from(!args.is_empty())..];
-    match command.as_str() {
+    let (format, forwarded) = output::parse(&args[usize::from(!args.is_empty())..])?;
+    let forwarded = forwarded.as_slice();
+    let result = execute(&command, forwarded, format);
+    if result.is_err() {
+        output::finished(format, false);
+    }
+    result
+}
+
+fn execute(command: &str, forwarded: &[String], format: output::Format) -> Result<u8, String> {
+    match command {
         "--version" | "-V" => {
             println!("cargo-gdp {}", env!("CARGO_PKG_VERSION"));
             Ok(0)
         }
         "help" | "--help" | "-h" => {
             println!(
-                "cargo gdp check [cargo check options]\ncargo gdp lint [workspace selection options] [--message-format=json]\ncargo gdp doctor [workspace selection options]\n\ncheck runs cargo check, then narrow syntax checks on selected local packages.\nJSON mode emits gdp-diagnostic and gdp-summary objects on stdout.\nNo command modifies manifests or toolchains. Syntax checks do not certify policy truth,\nresolve aliases, expand macros, or inspect every conditional compilation path."
+                "cargo gdp check [cargo check options]\ncargo gdp lint [workspace selection options] [--message-format=json]\ncargo gdp doctor [workspace selection options]\n\ncheck runs cargo check, then narrow syntax checks on selected local packages.\nJSON mode emits gdp-diagnostic and gdp-summary objects on stdout.\nUse --message-format=cargo-json with check or lint for Cargo/rustc editor diagnostics.\nNo command modifies manifests or toolchains. Syntax checks do not certify policy truth,\nresolve aliases, expand macros, or inspect every conditional compilation path."
             );
             Ok(0)
         }
         "check" => {
-            let status = Command::new(env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
-                .arg("check")
-                .args(forwarded)
-                .status()
-                .map_err(|e| e.to_string())?;
+            let status = output::check(forwarded, format)?;
             if !status.success() {
-                if json_output(forwarded)? {
+                if format.is_json() {
                     println!(
                         "{}",
                         serde_json::json!({"reason":"gdp-summary", "schema_version":1, "success":false, "stage":"compiler", "diagnostics":0})
                     );
                 }
+                output::finished(format, false);
                 return Ok(status.code().unwrap_or(1).clamp(1, 255) as u8);
             }
-            lint(forwarded)
+            lint(forwarded, format)
         }
-        "lint" => lint(forwarded),
+        "lint" => lint(forwarded, format),
         "doctor" => {
+            if format == output::Format::CargoJson {
+                return Err("cargo-json is for check or lint; use json for doctor".into());
+            }
             let packages = workspace::selected(forwarded)?;
             let rustc = Command::new("rustc")
                 .arg("--version")
@@ -68,7 +78,7 @@ fn run() -> Result<u8, String> {
             if !rustc.status.success() {
                 return Err(String::from_utf8_lossy(&rustc.stderr).into_owned());
             }
-            if json_output(forwarded)? {
+            if format.is_json() {
                 let selected: Vec<_> = packages.iter().map(|package| serde_json::json!({"name":package.name,"directory":package.directory,"sources":package.sources})).collect();
                 println!(
                     "{}",
@@ -89,53 +99,33 @@ fn run() -> Result<u8, String> {
     }
 }
 
-fn lint(args: &[String]) -> Result<u8, String> {
-    let json = json_output(args)?;
-    let mut diagnostics = Vec::new();
+fn lint(args: &[String], format: output::Format) -> Result<u8, String> {
+    let mut count = 0;
     for package in workspace::selected(args)? {
+        let mut diagnostics = Vec::new();
         analysis::scan_package(&package, &mut diagnostics)?;
-    }
-    for diagnostic in &diagnostics {
-        if json {
-            println!("{}", diagnostic.json());
-        } else {
-            eprintln!("{diagnostic}");
+        count += diagnostics.len();
+        for diagnostic in &diagnostics {
+            match format {
+                output::Format::CargoJson => {
+                    println!("{}", output::diagnostic(diagnostic, &package)?)
+                }
+                output::Format::Json => println!("{}", diagnostic.json()),
+                output::Format::Human => eprintln!("{diagnostic}"),
+            }
         }
     }
-    if json {
+    let success = count == 0;
+    if format.is_json() {
         println!(
             "{}",
-            serde_json::json!({"reason":"gdp-summary", "schema_version":1, "success":diagnostics.is_empty(), "stage":"syntax", "diagnostics":diagnostics.len(), "analysis":"syntax", "limits":"No alias resolution, macro expansion, cfg evaluation, or policy verification"})
+            serde_json::json!({"reason":"gdp-summary", "schema_version":1, "success":success, "stage":"syntax", "diagnostics":count, "analysis":"syntax", "limits":"No alias resolution, macro expansion, cfg evaluation, or policy verification"})
         );
-        return Ok(u8::from(!diagnostics.is_empty()));
-    }
-    if diagnostics.is_empty() {
+    } else if success {
         println!(
             "GDP syntax checks passed. This does not certify checks, policy truth, or all API boundaries."
         );
-        Ok(0)
-    } else {
-        Ok(1)
     }
-}
-
-fn json_output(args: &[String]) -> Result<bool, String> {
-    let mut value = None;
-    for (index, arg) in args.iter().enumerate() {
-        if arg == "--message-format" {
-            value = Some(
-                args.get(index + 1)
-                    .ok_or("missing value for --message-format")?
-                    .as_str(),
-            );
-        }
-        if let Some(format) = arg.strip_prefix("--message-format=") {
-            value = Some(format);
-        }
-    }
-    Ok(value.is_some_and(|format| {
-        format
-            .split(',')
-            .any(|part| part == "json" || part.starts_with("json-"))
-    }))
+    output::finished(format, success);
+    Ok(u8::from(!success))
 }

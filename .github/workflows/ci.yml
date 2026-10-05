@@ -23,8 +23,10 @@ jobs:
       - run: cargo run --example authorization --features macros
       - run: cargo run --example validation --features macros
       - run: cargo run --example relationships --features macros
+      - run: cargo run --example versioned --features macros
       - run: cargo run --example manual
       - run: cargo run -p cargo-gdp -- check --workspace --all-features --all-targets --locked
+      - run: cargo run -p cargo-gdp -- check --workspace --all-features --all-targets --locked --message-format=cargo-json
   quality:
     runs-on: ubuntu-latest
     steps:

@@ -9,3 +9,7 @@ Use `--message-format=json` for schema version 1 GDP records. Findings include s
 These rules do not run inside stock Clippy. Syntax analysis does not expand macros, resolve aliases, evaluate conditional compilation, or verify the truth of authorization policies. A clean scan does not certify all protected operations.
 
 Requires Rust 1.85 or later. No command changes manifests or toolchains. Licensed under MIT or Apache 2.0.
+
+`check` and `lint` accept `--message-format=cargo-json` for Cargo/rustc-compatible editor records and primary spans. The command reports one final build result after both stages. See `docs/EDITOR.md` in the repository for a rust-analyzer override and analysis limits.
+
+`gdp::duplicated_evidence` flags handwritten `Clone` and `Copy` implementations on recognized proofs, capabilities, and views. Borrow reusable evidence rather than duplicating an owned permission.

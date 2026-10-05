@@ -48,6 +48,18 @@ pub fn inspect(items: &[Item]) -> Vec<(usize, usize, &'static str, &'static str)
             if trait_path
                 .segments
                 .last()
+                .is_some_and(|s| matches!(s.ident.to_string().as_str(), "Clone" | "Copy"))
+            {
+                diagnostics.push((
+                    name.span().start().line,
+                    name.span().start().column + 1,
+                    "gdp::duplicated_evidence",
+                    "borrow reusable evidence instead of duplicating an owned permission",
+                ));
+            }
+            if trait_path
+                .segments
+                .last()
                 .is_some_and(|s| matches!(s.ident.to_string().as_str(), "Default" | "Deserialize"))
             {
                 diagnostics.push((
@@ -128,5 +140,21 @@ mod tests {
             rules("#[gp::proof] struct P<'a>; impl other::P { pub fn new_unchecked() {} }")
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn flags_duplication_of_local_proofs_capabilities_and_views() {
+        assert_eq!(
+            rules(
+                "#[gp::proof] struct P<'a>; impl Clone for P<'_> {} impl Copy for PCapability<'_> {} impl core::clone::Clone for PView<'_> {}"
+            ),
+            [
+                "gdp::duplicated_evidence",
+                "gdp::duplicated_evidence",
+                "gdp::duplicated_evidence"
+            ]
+        );
+        assert!(rules("struct Plain; impl Clone for Plain {} impl Copy for Plain {}").is_empty());
+        assert!(rules("#[gp::proof] struct P<'a>; impl Clone for other::P<'_> {}").is_empty());
     }
 }

@@ -2,9 +2,11 @@ use serde_json::Value;
 use std::{collections::BTreeSet, env, path::PathBuf, process::Command};
 
 pub struct Package {
+    pub id: String,
     pub name: String,
     pub directory: PathBuf,
     pub sources: Vec<PathBuf>,
+    pub targets: Vec<Value>,
 }
 
 pub fn selected(args: &[String]) -> Result<Vec<Package>, String> {
@@ -98,6 +100,7 @@ fn select(
                     .ok_or("missing manifest path")?,
             );
             result.push(Package {
+                id: id.to_owned(),
                 name: name.to_owned(),
                 directory: manifest
                     .parent()
@@ -129,6 +132,7 @@ fn select(
                     })
                     .filter_map(|target| target["src_path"].as_str().map(PathBuf::from))
                     .collect(),
+                targets: package["targets"].as_array().cloned().unwrap_or_default(),
             });
         }
     }

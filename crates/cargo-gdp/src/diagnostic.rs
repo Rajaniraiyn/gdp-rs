@@ -7,6 +7,7 @@ pub struct Diagnostic {
     pub column: usize,
     pub rule: &'static str,
     pub message: &'static str,
+    pub source_root: Option<PathBuf>,
 }
 
 impl Diagnostic {
