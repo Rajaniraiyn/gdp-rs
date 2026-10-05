@@ -1,0 +1,4 @@
+interface:
+  display_name: "GDP for Rust"
+  short_description: "Proof-gated Rust APIs with ghostproof and cargo-gdp"
+  default_prompt: "Use $gdp-rs to add or review proof-gated operations in this Rust project."

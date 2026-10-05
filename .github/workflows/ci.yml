@@ -1,0 +1,39 @@
+name: Rust
+on: [push, pull_request]
+permissions:
+  contents: read
+concurrency:
+  group: rust-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: ["1.85.0", stable]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          targets: thumbv7em-none-eabi
+      - run: cargo test --workspace --all-features --locked
+      - run: cargo test --no-default-features --locked
+      - run: cargo check -p ghostproof --no-default-features --target thumbv7em-none-eabi --locked
+      - run: cargo run --example authorization --features macros
+      - run: cargo run --example validation --features macros
+      - run: cargo run --example relationships --features macros
+      - run: cargo run --example manual
+      - run: cargo run -p cargo-gdp -- check --workspace --all-features --all-targets --locked
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-features --all-targets -- -D warnings
+      - run: cargo doc --workspace --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings

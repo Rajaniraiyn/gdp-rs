@@ -1,0 +1,46 @@
+[package]
+name = "ghostproof"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Scoped names and trusted evidence for Ghosts of Departed Proofs"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Rajaniraiyn/gdp-rs"
+keywords = ["gdp", "proof", "authorization", "typestate", "no-std"]
+categories = ["no-std", "rust-patterns"]
+
+[workspace]
+members = ["crates/ghostproof-macros", "crates/cargo-gdp"]
+resolver = "3"
+
+[features]
+default = []
+macros = ["dep:ghostproof-macros"]
+
+[dependencies]
+generativity = "1.2.1"
+ghostproof-macros = { version = "0.1.0", path = "crates/ghostproof-macros", optional = true }
+
+[dev-dependencies]
+futures = { version = "0.3", features = ["executor"] }
+
+[[example]]
+name = "authorization"
+required-features = ["macros"]
+
+[[example]]
+name = "validation"
+required-features = ["macros"]
+
+[[example]]
+name = "relationships"
+required-features = ["macros"]
+
+[[example]]
+name = "overhead"
+required-features = ["macros"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"

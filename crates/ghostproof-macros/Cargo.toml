@@ -1,0 +1,21 @@
+[package]
+name = "ghostproof-macros"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Private nominal proof declarations for ghostproof"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Rajaniraiyn/gdp-rs"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }
+proc-macro-crate = "=3.3.0"
+
+[lints.rust]
+unsafe_code = "forbid"

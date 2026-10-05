@@ -1,0 +1,6 @@
+[alias]
+# Workspace shortcuts; no global installation or toolchain changes.
+gdp = ["run", "--package", "cargo-gdp", "--"]
+test-all = ["test", "--workspace", "--all-features", "--locked"]
+lint-all = ["clippy", "--workspace", "--all-features", "--all-targets", "--", "-D", "warnings"]
+docs-all = ["doc", "--workspace", "--all-features", "--no-deps"]

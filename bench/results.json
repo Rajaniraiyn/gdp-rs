@@ -1,0 +1,52 @@
+{
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+  "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+  "runtime": "iterations=5000000 samples=9 plain_median_ns=3686060 proof_median_ns=4102892",
+  "fixtures": [
+    {
+      "sites": 100,
+      "proofs": false,
+      "check_seconds": [
+        0.12178201899223495,
+        0.11332491799839772,
+        0.10718498499772977
+      ],
+      "check_median_seconds": 0.11332491799839772,
+      "executable_bytes": 441248
+    },
+    {
+      "sites": 100,
+      "proofs": true,
+      "check_seconds": [
+        0.11336031100654509,
+        0.1027626339928247,
+        0.11271277899504639
+      ],
+      "check_median_seconds": 0.11271277899504639,
+      "executable_bytes": 442064
+    },
+    {
+      "sites": 1000,
+      "proofs": false,
+      "check_seconds": [
+        0.1248773400002392,
+        0.1037134829966817,
+        0.12105542900098953
+      ],
+      "check_median_seconds": 0.12105542900098953,
+      "executable_bytes": 450264
+    },
+    {
+      "sites": 1000,
+      "proofs": true,
+      "check_seconds": [
+        0.12512414099182934,
+        0.11373444700438995,
+        0.10353712100186385
+      ],
+      "check_median_seconds": 0.11373444700438995,
+      "executable_bytes": 458264
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+mod p { #[gp::proof] pub struct r#Proof<'a>;pub fn check<'a>(a:&gp::Named<'a,u32>)->r#Proof<'a>{r#Proof::issue(a)} }fn main(){gp::name!(r#type=1_u32);let c=p::check(&r#type).bind(r#type);assert_eq!(*c.subject_0().value(),1);}
