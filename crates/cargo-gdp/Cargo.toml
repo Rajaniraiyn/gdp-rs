@@ -10,7 +10,7 @@ repository = "https://github.com/Rajaniraiyn/gdp-rs"
 
 [dependencies]
 serde_json = "1"
-syn = { version = "2", features = ["full", "visit"] }
+syn = { version = "3", features = ["full", "visit"] }
 proc-macro2 = { version = "1", features = ["span-locations"] }
 
 [lints.rust]
